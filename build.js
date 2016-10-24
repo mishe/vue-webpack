@@ -24,39 +24,47 @@ var webpack = require("webpack"),
 
     _config = {
         entry:{
-            index:['./src/index.js'],
-            detail:['./src/detail.js']
+            app:['./source/app.js']
         },
         output: {
-            path: __dirname + "/dist/" ,
-            filename: pkg.version+"/[name]" + (build_realse ? ".min.js" : ".js")
+            path: __dirname + "/dist/",
+            filename: "bundle_" + pkg.version + (build_realse ? ".min.js" : ".js")
         },
         module: {
             loaders: [
                 {
                     test: /\.html$/,
-                    loader: "html-clean!html-loader?minimize=false"
+                    loader: "html-loader"
                 },
                 {
                     test: /\.css$/,
                     loader: ExtractTextPlugin.extract("style-loader", "css-loader")
                 },
                 {
+                    test: /(\.js)$/,
+                    loader:["babel"] ,
+                    exclude:/node_modules/,
+                    query:{
+                        presets:["es2015"]
+                    }
+                },
+                {
                     test: /\.(png|jpg|svg|gif|eot|woff|ttf)$/,
-                    loader: 'file-loader?name=[path]/[hash:8].[ext]'
+                    loader: 'url-loader?limit=4086&name=[path][hash:8].[ext]'
                 }]
-        }
-        , plugins: [
-            new ExtractTextPlugin(pkg.version+"/bundle" + (build_realse ? ".min.css" : ".css"))
+        },
+        plugins: [
+            // new ExtractTextPlugin("bundle_" + pkg.version + (build_realse ? ".min.css" : ".css"))
         ]
     },
     compiler, server;
 
-if (debug) {
-    _config.devtool= 'cheap-module-eval-source-map';
-    _config.entry.index.push('webpack/hot/dev-server');
+if(debug){
+    _config.devtool= 'source-map';
+    _config.entry.app.push('webpack/hot/dev-server');
+    _config.entry.app.push('webpack-dev-server/client?http://127.0.0.1:8080');
     _config.plugins.push(new webpack.HotModuleReplacementPlugin());
-} else if (build_realse) {
+}else if(build_realse) {
     _config.plugins.push(new webpack.optimize.UglifyJsPlugin());
 }
 
@@ -64,10 +72,11 @@ compiler = webpack(_config);
 
 if (debug) {
     server = new dev_server(compiler, {
-        hot: true
+        hot: true,
+        inline:true,
+        stats: { colors: true }
     });
-    server.listen(8080, "0.0.0.0", function () {
-
+    server.listen(8080, "127.0.0.1", function () {
     });
 } else {
     compiler.run(function (err, status) {
